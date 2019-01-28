@@ -34,5 +34,5 @@ sym≈ .(m - m') .(n - n') (m≈n m m' n n' x) = m≈n n n' m m' Goal where
 trans≈ : ∀ p q m → p ≈ q → q ≈ m → p ≈ m
 trans≈ .(m₁ - m') .(n - n') m (m≈n m₁ m' n n' x) = λ x₁ → Goal where
   Goal : (m₁ - m') ≈ m
-  Goal = ?
+  Goal = {!!}
     
