@@ -127,3 +127,4 @@ pre-antisym .(x ∷ l1) .(x ∷ l2) (step x l1 l2 p1) (step .x .l2 .l1 p2) = sym
 pre-trans : ∀ {A} (l1 l2 l3 : List A) → l1 isPrefixOf l2 → l2 isPrefixOf l3 → l1 isPrefixOf l3
 pre-trans [] l2 l3 p1 p2 = base l3
 pre-trans (x ∷ l1) .(x ∷ l2) .(x ∷ l3) (step .x .l1 l2 p1) (step .x .l2 l3 p2) = step x l1 l3 (pre-trans l1 l2 l3 p1 p2)
+
