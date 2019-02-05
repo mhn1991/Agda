@@ -115,6 +115,26 @@ induction-list : {A : Set} → (P : List A → Set) → (P []) → ((x : A) (xs 
 induction-list P IB IS [] = IB
 induction-list P IB IS (x ∷ xs) = IS x xs (induction-list P IB IS xs)
 --Q2
+{-
+idrev : {A : Set} → (xs : List A) → rev (rev xs) ≡ xs
+idrev [] = refl
+idrev (x ∷ xs) = Goal where
+  IH : rev (rev xs) ≡ xs
+  IH = idrev xs
+  Goal : rev (rev xs ++ [ x ]) ≡ x ∷ xs
+  Goal = begin
+         rev (rev xs ++ [ x ])
+       ≡⟨ lemma₁ (rev xs) [ x ] ⟩
+         x ∷ rev (rev xs)
+       ≡⟨ cong (λ α → x ∷ α) IH ⟩ 
+         x ∷ xs
+       ∎
+-}
+idrev-rewrite : {A : Set} → (xs : List A) → rev (rev xs) ≡ xs
+idrev-rewrite [] = refl
+idrev-rewrite (x ∷ xs) rewrite lemma₁ (rev xs) [ x ] | cong (λ α → x ∷ α) (idrev-rewrite xs) = refl 
+
+
 lem₀ : {A : Set} → (xs : List A) (y : A) → rev (xs ++ [ y ]) ≡ [ y ] ++ (rev xs)
 lem₀ [] y = refl
 lem₀ (x ∷ xs) y rewrite cong (λ α → α ++ [ x ]) (lem₀ xs y) = refl
