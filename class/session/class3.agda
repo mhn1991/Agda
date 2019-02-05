@@ -52,10 +52,7 @@ lemma₀ (x ∷ xs) y = Goal where
   IH = lemma₀ xs y
   Goal : rev (xs ++ [ y ]) ++ [ x ] ≡ (y ∷ rev xs) ++ [ x ]
   Goal = cong (λ α → α ++ [ x ]) IH
-  
-lem : {A : Set} → (xs ys : List A) → rev (xs ++ ys) ≡ (rev ys) ++ (rev xs)
-lem [] ys =  sym (unit-l (rev ys))
-lem (x ∷ xs) ys rewrite cong (λ α → α ++ [ x ]) (lem xs ys)  = {!!} 
+   
 lemma₁ : {A : Set} → (xs ys : List A) → rev (xs ++ ys) ≡ (rev ys) ++ (rev xs)
 lemma₁ [] ys = sym (unit-l (rev ys))
 lemma₁ (x ∷ xs) ys = Goal where
@@ -83,7 +80,6 @@ idrev (x ∷ xs) = Goal where
        ≡⟨ cong (λ α → x ∷ α) IH ⟩ 
          x ∷ xs
        ∎
-
 -- Correctness of tail-recursive reverse
 
 -- If as a where clause this causes proof problems
@@ -123,7 +119,9 @@ lem₀ : {A : Set} → (xs : List A) (y : A) → rev (xs ++ [ y ]) ≡ [ y ] ++ 
 lem₀ [] y = refl
 lem₀ (x ∷ xs) y rewrite cong (λ α → α ++ [ x ]) (lem₀ xs y) = refl
 
-
+lem₁ : {A : Set} → (xs ys : List A) → rev (xs ++ ys) ≡ (rev ys) ++ (rev xs)
+lem₁ [] ys =  sym (unit-l (rev ys))
+lem₁ (x ∷ xs) ys rewrite cong (λ α → α ++ [ x ]) (lem₁ xs ys) | assoc (rev ys) (rev xs) (x ∷ []) = refl
 --Q3
 sumR :  List ℕ → ℕ
 sumR [] = 0
@@ -131,21 +129,44 @@ sumR (x ∷ xs) = x + sumR xs
 
 sumT :  List ℕ → ℕ → ℕ
 sumT [] sum = sum
-sumT (x ∷ xs) sum = sumT xs (sum + x)
-
-sumApp : List ℕ → ℕ
-sumApp [] = 0
-sumApp list = sumT list 0
+sumT (x ∷ xs) sum = sumT xs (x + sum)
 
 sumF : List ℕ → ℕ
 sumF = foldr _+_ 0
 --Q4
++-assoc : ∀ m n r → m + n + r ≡ m + (n + r)
++-assoc zero n r = refl
++-assoc (suc m) n r = cong suc (+-assoc m n r)
+
+id-l : ∀ n → n ≡ n + zero
+id-l zero = refl
+id-l (suc n) = cong suc (id-l n)
+
++-comm : ∀ m n → m + n ≡ n + m
++-comm zero n = id-l n
++-comm (suc m) n = lem m n
+  where
+    lem : ∀ m n → suc m + n ≡ n + suc m
+    lem m zero = cong suc (sym (id-l m))
+    lem m (suc n) = let IH = lem m n in
+                    trans (cong suc (let p = lem n m in trans (sym p) (cong suc (+-comm n m)))) (cong suc IH)
+
+
+ch :  (xs : List ℕ) (m n : ℕ) → (sumT xs m) + n ≡ sumT xs (m + n)
+ch [] m n = refl
+ch (x ∷ xs) m n rewrite ch xs (x + m) n = cong (sumT xs) (+-assoc x m n)
+
+lem1 : ∀ m n → suc m ≡ suc n → m ≡ n
+lem1 m .m refl = refl
+
+lem2 : ∀ m n r → r + m ≡ r + n → m ≡ n
+lem2 m n zero p = p
+lem2 m n (suc r) p = lem2 m n r (lem1 (r + m) (r + n) p)
 
 sumR≡sumF : (xs : List ℕ) → sumR xs ≡ sumF xs
 sumR≡sumF [] = refl
 sumR≡sumF (x ∷ xs) = cong (_+_ x) (sumR≡sumF xs)
 
-sumR≡sumT : (xs : List ℕ)  → sumR xs ≡ sumApp xs 
+sumR≡sumT : (xs : List ℕ) → sumR xs ≡ sumT xs 0 
 sumR≡sumT [] = refl
-sumR≡sumT (x ∷ xs) = {!!} 
-
+sumR≡sumT (x ∷ xs) rewrite +-comm x 0  | sym (ch xs 0 x) | +-comm x (sumR xs) | cong (λ z → z + x) (sumR≡sumT xs)  = refl 
