@@ -122,7 +122,7 @@ postulate DNE : {A : Set} → ¬ (¬ A) → A
 
 
 LEM : {A : Set} → A ∨ ¬ A
-LEM  = {!!} 
+LEM  = {!!}
 
 Bool→ : {A B : Set} → (A → B) → ¬ A ∨ B
 Bool→ = {!!}
