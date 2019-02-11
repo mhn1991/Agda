@@ -88,21 +88,15 @@ A ↭ B = (A → B) ∧ (B → A)
 _ : {A B : Set} → A ⇔ B → (A ↭ B)
 _ = λ i → (λ a → _⇔_.f i a) , (λ b → _⇔_.g i b)
 
+
+
 unit⊥ : {A : Set} → (⊥ ∧ A) ⇔ ⊥
 unit⊥ {A} = record { f  = λ {  ( () , _  ) }
                ; g  = λ ()
                ; gf = λ {  ( () , _  ) }
                ; fg = λ ()
                }
-{-
-unit⊤ : {A : Set} → (A ∨ ⊤) ⇔ ⊤
-unit⊤ {A} = record { f = λ _ → • ; g = λ _ → inr • ; fg = Goal₀ ; gf = {!!} } where
-  Goal₀ : (b : ⊤) → • ≡ b
-  Goal₀ • = refl
-  Goal : (a : A ∨ ⊤) → inr • ≡ a
-  Goal (inl x) = {! Goal: inr • ≡ inl x!} {- Proof relevance! Hegel (1807): All the same, while proof is essential in the case of mathematical knowledge, it still does not have the significance and nature of being a moment in the result itself. -}
-  Goal (inr •) = refl 
--}
+
 
 {- Negation -}
 
@@ -121,19 +115,17 @@ EFQ ()
 postulate DNE : {A : Set} → ¬ (¬ A) → A
 
 
-LEM : {A : Set} → A ∨ ¬ A
-LEM  = {!!}
-
-Bool→ : {A B : Set} → (A → B) → ¬ A ∨ B
-Bool→ = {!!}
-
-Bool→' : {A B : Set} → ¬ A ∨ B → A → B
-Bool→' = {!!} 
-
 {- Algebra of exponentials, e.g. (ab)ᶜ = (aᶜ)(bᶜ) -}
-
 →∧Law : {A B C : Set} → (C → A ∧ B) ⇔ ((C → A) ∧ (C → B))
-→∧Law {A} {B} {C} = {!!}
+→∧Law {A} {B} {C} = record {
+  f = λ x → (λ y → ∧El (→E x y)) , (λ z → ∧Er (→E x z)) ;
+  g = λ x y →  ∧I (→E (∧El x) y) (→E (∧Er x) y) ;
+  fg =  λ b →  {!!};
+  gf = λ a → {!!} }
+    
+
+--v1 :  {A B C : Set} → (C → A ∧ B) → (C → A) ∧ (C → B)
+
 
 {- Universal quantifier -}
 
@@ -156,3 +148,15 @@ Exercises:
 * LEM <-> DNE
 * Bool→ <-> LEM/DNE
 -}
+
+--Q1
+LEM : {A : Set} → A ∨ ¬ A 
+LEM  = DNE (λ z → z (inr (λ x → z (inl x))))
+
+Bool→ : {A B : Set} → (A → B) → ¬ A ∨ B
+Bool→ f = DNE (λ b → b (inl (λ x → b (inr (f x))))) 
+
+Bool→' : {A B : Set} → ¬ A ∨ B → A → B
+Bool→' (inl a)  = λ z → DNE (λ _ → a z)
+Bool→' (inr b) = →I b
+

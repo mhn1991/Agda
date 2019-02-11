@@ -1,0 +1,164 @@
+open import Data.List
+open import Data.Nat using (ℕ; zero; suc; _+_; _*_)
+open import Data.Nat.Properties
+import Relation.Binary.PropositionalEquality as Eq
+open Eq using (_≡_; refl; cong; sym)
+open Eq.≡-Reasoning
+
+record _∼_ (A B : Set) : Set where
+  field
+    f : A → B
+    g : B → A
+    fg : ∀ (b : B) → f (g b) ≡ b
+    gf : ∀ (a : A) → g (f a) ≡ a
+
+data _∨_ (A B : Set) : Set where
+  inl : A → A ∨ B
+  inr : B → A ∨ B
+
+data _∧_ (A B : Set) : Set where
+  _,_ : A → B → A ∧ B
+
+data ⊤ : Set where
+  • : ⊤
+
+data ⊥ : Set where
+
+∨E : {A B C : Set} → A ∨ B → (A → C) → (B → C) → C
+∨E (inl a) f g = f a
+∨E (inr b) f g = g b 
+
+¬ : Set → Set
+¬ A = A → ⊥
+
+EFQ : {A : Set} → ⊥ → A
+EFQ ()
+
+
+
+record Σ (A : Set) (P : A → Set) : Set where
+  field
+    a : A
+    p : P a
+
+rev : {A : Set} → (xs : List A) → List A
+rev [] = []
+rev (x ∷ xs) = (rev xs) ++ [ x ]
+
+assoc : {A : Set} → (xs ys zs : List A) → (xs ++ ys) ++ zs ≡ xs ++ (ys ++ zs)
+assoc [] ys zs = refl
+assoc (x ∷ xs) ys zs = cong (_∷_ x) (assoc xs ys zs)
+
+unit-l : {A : Set} → (xs : List A) → xs ++ [] ≡ xs
+unit-l [] = refl
+unit-l (x ∷ xs) = cong (_∷_ x) (unit-l xs)
+
+lemma₁ : {A : Set} → (xs ys : List A) → rev (xs ++ ys) ≡ (rev ys) ++ (rev xs)
+lemma₁ [] ys = sym (unit-l (rev ys))
+lemma₁ (x ∷ xs) ys = Goal where
+  IH : rev (xs ++ ys) ≡ (rev ys) ++ (rev xs)
+  IH = lemma₁ xs ys
+  Goal : rev (xs ++ ys) ++ [ x ] ≡ rev ys ++ (rev xs ++ [ x ])
+  Goal = begin
+         rev (xs ++ ys) ++ [ x ]
+       ≡⟨ cong (λ α → α ++ [ x ]) IH ⟩
+         (rev ys ++ rev xs) ++ [ x ]
+       ≡⟨ assoc (rev ys) (rev xs) (x ∷ []) ⟩
+         rev ys ++ (rev xs ++ [ x ])
+       ∎
+
+idrev : {A : Set} → (xs : List A) → rev (rev xs) ≡ xs
+idrev [] = refl
+idrev (x ∷ xs) = Goal where
+  IH : rev (rev xs) ≡ xs
+  IH = idrev xs
+  Goal : rev (rev xs ++ [ x ]) ≡ x ∷ xs
+  Goal = begin
+         rev (rev xs ++ [ x ])
+       ≡⟨ lemma₁ (rev xs) [ x ] ⟩
+         x ∷ rev (rev xs)
+       ≡⟨ cong (λ α → x ∷ α) IH ⟩ 
+         x ∷ xs
+       ∎
+
+rev-onto : {A : Set} → (xs : List A) → Σ (List A) λ ys → rev ys ≡ xs
+rev-onto xs = record { a = rev xs ; p = idrev xs } 
+
+∃ : ∀ {A : Set} (B : A → Set) → Set
+∃ {A} B = Σ A B
+
+∃-syntax = ∃
+syntax ∃-syntax (λ x → B) = ∃[ x ] B
+
+rev-onto' : {A : Set} → (xs : List A) → ∃[ ys ] (rev ys ≡ xs)
+rev-onto' xs = record { a = rev xs ; p = idrev xs } 
+
+∃-elim : ∀ {A : Set} {B : A → Set} {C : Set}
+  → (∀ x → B x → C)
+  → ∃[ x ] B x
+  → C
+∃-elim q record { a = a ; p = p } = q a p 
+
+{- Odds and evens -}
+
+data even : ℕ → Set
+data odd  : ℕ → Set
+
+data even where
+  even-zero : even zero
+  even-suc : ∀ {n : ℕ} → odd n → even (suc n)
+
+data odd where
+  odd-suc : ∀ {n : ℕ} → even n → odd (suc n)
+
+
+oddeven : ∀ n → odd n ∨ even n
+oddeven zero = inr even-zero
+oddeven (suc n) = ∨E (oddeven n) (λ z → inr (even-suc z)) λ z → inl (odd-suc z)
+
+
+even-dec : ∀ n → even n ∨ (¬ (even n))
+even-dec zero = inl even-zero
+even-dec (suc zero) = inr λ x → EFQ (even1 x) where
+                          even1 : even 1 → ⊥
+                          even1 (even-suc ()) 
+even-dec (suc (suc n)) = ∨E IH (λ z → inl (even-suc (odd-suc z))) (λ x → inr (lem n x)) where
+                              IH : even n ∨ (¬ (even n))
+                              IH = even-dec n
+                              lem : ∀ m → ¬ (even m) →  ¬ (even (suc (suc m)))
+                              lem m x (even-suc (odd-suc y)) = x y 
+
+
+
+n+n : ∀ n → even n → ∃[ m ] (m + m ≡ n)
+n+n zero even-zero = record { a = zero ; p = refl }
+n+n (suc zero) (even-suc ())
+n+n (suc (suc n)) (even-suc (odd-suc x)) = record { a = suc m ; p = Goal } where 
+  IH : Σ ℕ (λ z → z + z ≡ n)
+  IH = n+n n x
+  m : ℕ
+  m = Σ.a IH 
+  p : m + m ≡ n 
+  p = Σ.p IH
+  Goal : (suc m) + (suc m) ≡ suc (suc n)
+  Goal = begin
+    (suc m) + (suc m) ≡⟨ refl ⟩
+    suc (m + (suc m)) ≡⟨ cong suc (+-comm m (suc m)) ⟩
+    suc ((suc m) + m) ≡⟨ refl  ⟩
+    suc (suc (m + m)) ≡⟨ cong (λ α → (suc (suc α))) p ⟩
+    suc (suc n)
+    ∎
+
+
+one-is-odd : odd (suc zero)
+one-is-odd = odd-suc even-zero
+
+is-even : ℕ → Set
+is-even n = ∃[ m ] (m + m ≡ n)
+
+
+even-iso : ∀ n → is-even n ∼ even n
+even-iso zero  = record {
+  f = λ { is-even zero → even zero } ;
+  g = λ _ → record { a = zero ; p = refl } ;
+  fg = λ b → {!!} ; gf = {!!} }
