@@ -1,6 +1,7 @@
 import Relation.Binary.PropositionalEquality as Eq
+open Eq.≡-Reasoning
 open Eq using (_≡_; refl; cong; sym)
-
+open import Function using (_∘_)
 
 record _⇔_ (A B : Set) : Set where
   field
@@ -116,14 +117,15 @@ postulate DNE : {A : Set} → ¬ (¬ A) → A
 
 
 {- Algebra of exponentials, e.g. (ab)ᶜ = (aᶜ)(bᶜ) -}
+{-
 →∧Law : {A B C : Set} → (C → A ∧ B) ⇔ ((C → A) ∧ (C → B))
 →∧Law {A} {B} {C} = record {
   f = λ x → (λ y → ∧El (→E x y)) , (λ z → ∧Er (→E x z)) ;
   g = λ x y →  ∧I (→E (∧El x) y) (→E (∧Er x) y) ;
-  fg =  λ b →  {!!};
+  fg =  λ b → {!!};
   gf = λ a → {!!} }
     
-
+-}
 --v1 :  {A B C : Set} → (C → A ∧ B) → (C → A) ∧ (C → B)
 
 
@@ -160,3 +162,74 @@ Bool→' : {A B : Set} → ¬ A ∨ B → A → B
 Bool→' (inl a)  = λ z → DNE (λ _ → a z)
 Bool→' (inr b) = →I b
 
+--Q2
+-- ⇔ and ∧ has same infixr I increase ∧ infixr to avoid parentesis
+infixr 21 _∧_
+∧comm : ∀ {A B : Set} → A ∧ B ⇔ B ∧ A
+∧comm = record {
+  f = λ{(x , y) → y , x } ;
+  g = λ{ ( y , x ) → ( x , y ) } ;
+  fg = λ{ ( x , y ) → refl } ;
+  gf = λ{ ( y , x ) → refl } }
+
+∧assoc : ∀ {A B C : Set} → (A ∧ B) ∧ C ⇔ A ∧ (B ∧ C)
+∧assoc =
+  record
+    { f      = λ{ (( x , y ) , z ) → ( x , ( y , z )) }
+    ; g    = λ{ ( x , ( y , z )) → (( x , y ) , z ) }
+    ; gf = λ{ (( x , y ) , z ) → refl }
+    ; fg = λ{ ( x , ( y , z )) → refl }
+    }
+--id 
+⊤-idl : ∀ {A : Set} → ⊤ ∧ A ⇔ A
+⊤-idl =
+  record
+    { f   = λ{ ( • , x ) → x }
+      ; g = λ{ x → ( • , x ) }
+    ; gf  = λ{ ( • , x )  → refl }
+    ; fg  = λ{ x → refl }
+    }
+
+⊤-idr : ∀ {A : Set} → A ∧ ⊤  ⇔ A
+⊤-idr =
+  record
+    { f   = λ{ ( x , • ) → x }
+      ; g = λ{ x → ( x , • ) }
+    ; gf  = λ{ ( x , • )  → refl }
+    ; fg  = λ{ x → refl }
+    }
+
+--(p ^ n) ^ m  ≡  p ^ (n * m)
+^* : ∀ {A B C : Set} → (A → B → C) ⇔ (A ∧ B → C)
+^* =
+  record
+    { f  =  λ{ f → λ{ (x , y ) → f x y }}
+    ; g  =  λ{ g → λ{ x → λ{ y → g ( x , y ) }}}
+    ; gf =  λ{ f → refl }
+    ; fg =  λ{ g → ext λ{ ( x , y ) → refl }}
+    }
+
+--(p * n) ^ m = (p ^ m) * (n ^ m)
+
+∧dis : ∀ {A B : Set} (w : A ∧ B) → ( ∧El w , ∧Er w ) ≡ w
+∧dis ( x , y ) = refl
+
+→^*distrib : ∀ {A B C : Set} → (A → B ∧ C) ⇔ (A → B) ∧ (A → C)
+→^*distrib =
+  record
+    { f    = λ{ f → ( ∧El ∘ f , ∧Er ∘ f ) }
+    ; g    = λ{ ( k , l ) → λ{ x → ( k x , l x ) } }
+    ; gf   = λ{ f → ext λ{ x → ∧dis (f x) } }
+    ; fg   = λ{ ( g , h ) → refl }
+    }
+
+
+--p ^ (n + m) = (p ^ n) * (p ^ m)
+→∨dis : ∀ {A B C : Set} → (A ∨ B → C) ⇔ ((A → C) ∧ (B → C))
+→∨dis =
+  record
+    { f  = λ{ f → ( f ∘ inl , f ∘ inr ) }
+    ; g  = λ{ ( k , l ) → λ{ (inl x) → k x ; (inr y) → l y } }
+    ; gf = λ{ f → ext λ{ (inl x) → refl ; (inr y) → refl } }
+    ; fg = λ{ ( g , h ) → refl }
+    }

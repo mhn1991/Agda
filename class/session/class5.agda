@@ -97,7 +97,7 @@ rev-onto' xs = record { a = rev xs ; p = idrev xs }
   → (∀ x → B x → C)
   → ∃[ x ] B x
   → C
-∃-elim q record { a = a ; p = p } = q a p 
+∃-elim q record { a = a ; p = p } = q a p
 
 {- Odds and evens -}
 
@@ -149,16 +149,31 @@ n+n (suc (suc n)) (even-suc (odd-suc x)) = record { a = suc m ; p = Goal } where
     suc (suc n)
     ∎
 
-
 one-is-odd : odd (suc zero)
 one-is-odd = odd-suc even-zero
 
 is-even : ℕ → Set
 is-even n = ∃[ m ] (m + m ≡ n)
 
+id-l : ∀ n → n ≡ n + zero
+id-l zero = refl
+id-l (suc n) = cong suc (id-l n)
+
+helper : ∀ n → n + n ≡ zero → n ≡ zero
+helper zero = λ _ → refl
+helper (suc n ) = λ ()
 
 even-iso : ∀ n → is-even n ∼ even n
 even-iso zero  = record {
-  f = λ { is-even zero → even zero } ;
-  g = λ _ → record { a = zero ; p = refl } ;
-  fg = λ b → {!!} ; gf = {!!} }
+  f = λ x → even-zero ;
+  g = n+n zero ;
+  fg = Goal;
+  gf = {!!} } where
+  Goal : (b : even zero) → even-zero ≡ b
+  Goal even-zero = refl
+  Goal' : (a : is-even zero) → record { a = zero ; p = refl } ≡ a
+  Goal' record { a = x ; p = y } = {!!}
+    
+  
+even-iso (suc n) = record { f = {!!} ; g = λ x → {!!} ; fg = {!!} ; gf = {!!} }
+

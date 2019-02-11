@@ -12,8 +12,8 @@ import Relation.Binary.PropositionalEquality as Eq
 open Eq using (_≡_; refl; sym; trans; cong)
 open Eq.≡-Reasoning
 open import Data.List
-open import Data.Nat
-open import Data.Product
+open import Data.Nat using (ℕ; zero; suc; _+_; _*_)
+--open import Data.Product
 
 
 induction-ℕ : (P : ℕ → Set) → (P zero) → (∀ n → P n → P (1 + n)) → (∀ n → P n)
@@ -138,6 +138,7 @@ sumT (x ∷ xs) sum = sumT xs (x + sum)
 sumF : List ℕ → ℕ
 sumF = foldr _+_ 0
 --Q4
+
 +-assoc : ∀ m n r → m + n + r ≡ m + (n + r)
 +-assoc zero n r = refl
 +-assoc (suc m) n r = cong suc (+-assoc m n r)
@@ -173,4 +174,4 @@ sumR≡sumF (x ∷ xs) = cong (_+_ x) (sumR≡sumF xs)
 
 sumR≡sumT : (xs : List ℕ) → sumR xs ≡ sumT xs 0 
 sumR≡sumT [] = refl
-sumR≡sumT (x ∷ xs) rewrite +-comm x 0  | sym (ch xs 0 x) | +-comm x (sumR xs) | cong (λ z → z + x) (sumR≡sumT xs)  = refl 
+sumR≡sumT (x ∷ xs) rewrite +-comm x 0  | sym (ch xs 0 x) | +-comm x (sumR xs) | cong (λ z → z + x) (sumR≡sumT xs)  = refl
