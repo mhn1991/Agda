@@ -1,0 +1,230 @@
+module Code where
+
+open import Data.Nat
+open import Data.Nat.Properties
+open import Data.Bool
+open import Data.List
+open import Relation.Binary.PropositionalEquality
+
+module PartA where
+  -- {-# TERMINATING #-}
+  -- tri : ℕ → ℕ
+  -- tri 0 = 0
+  -- tri (suc n) = suc n + tri (suc n)
+
+  -- bogus : ∀ n → 0 ≡ n
+  -- bogus 0 = refl
+  -- bogus (suc n) = +-cancelʳ-≡ 0 (suc n) (refl {x = tri (suc n)})
+
+module PartB where
+  v1 : ℕ → ℕ
+  v1 zero = zero
+  v1 (suc n) = v1 n
+
+  id : ℕ → ℕ
+  id n = n
+
+  -- {-# TERMINATING #-}
+  -- v2 : ℕ → ℕ
+  -- v2 zero = zero
+  -- v2 (suc n) = v2 (id n)
+
+  v3 : ℕ → ℕ
+  v3 zero = zero
+  v3 (suc n) = v3 (id' n)
+    where
+      id' : ℕ → ℕ
+      id' n = n
+
+  -- {-# TERMINATING #-}
+  -- v4 : ℕ → ℕ
+  -- v4 zero = zero
+  -- v4 (suc n) = v4 (copy n)
+  --   where
+  --     copy : ℕ → ℕ
+  --     copy zero = zero
+  --     copy (suc n) = suc (copy n)
+
+  -- v5 : ℕ → ℕ
+  -- v5 zero = zero
+  -- v5 (suc n) = v5 (copy' n)
+  --   where
+  --     copy' : ℕ → ℕ
+  --     copy' zero = suc zero
+  --     copy' (suc n) = suc (copy' n)
+
+  ack : ℕ → ℕ → ℕ
+  ack 0 n = suc n
+  ack (suc m) 0 = ack m 1
+  ack (suc m) (suc n) = ack m (ack (suc m) n)
+
+  ack' : ℕ → ℕ → ℕ
+  ack' n 0 = suc n
+  ack' 0 (suc m) = ack' 1 m
+  ack' (suc n) (suc m) = ack' (ack' n (suc m)) m
+
+  -- ack 1 0 ≡ 2
+  -- ack 2 0 ≡ 3
+  -- ack 3 0 ≡ 5
+  -- ack 4 0 ≡ 13
+  -- ack 5 0 ≡ 65533
+  -- ack 6 0 ≡ <19729-digit number>
+
+module PartC where
+ 
+  data Acc {A : Set} (_<_ : A → A → Set) (x : A) : Set where
+    acc : (∀ y → y < x → Acc _<_ y) → Acc _<_ x
+
+  WellFounded : {A : Set} → (A → A → Set) → Set
+  WellFounded _<_ = ∀ x → Acc _<_ x
+
+  acc-induction : {A : Set} {_<_ : A → A → Set} → (P : A → Set) →
+                (∀ x → (∀ y → y < x → P y) → P x) → (∀ x → Acc _<_ x → P x)
+  acc-induction P ih x (acc α) = ih x (\y r → acc-induction P ih y (α y r))
+
+  wf-induction :  {A : Set} {_<_ : A → A → Set} → WellFounded _<_ → (P : A → Set) →
+                (∀ x → (∀ y → y < x → P y) → P x) → (∀ x → P x)
+  wf-induction wf P ih x = acc-induction P ih x (wf x)
+
+  acc< : (n m : ℕ) → m < n → Acc _<_ m
+  acc< zero m ()
+  acc< (suc n) zero _ = acc \{ _ ()} 
+  acc< (suc n) (suc m) (s≤s lt) = acc \{ p lt' → acc< n p (≤-trans lt' lt) }
+
+  wf< : WellFounded _<_
+  wf< n = acc (acc< n)
+
+  strong-induction : (P : ℕ → Set) → (∀ n → (∀ m → m < n → P m) → P n) → (∀ n → P n)
+  strong-induction P ih = wf-induction wf< P ih
+
+  data EvenOddView (m : ℕ) : Set where
+    even : ∀ k → (k + k) ≡ m → EvenOddView m
+    odd : ∀ k → suc(k + k) ≡ m → EvenOddView m
+
+  evenoddView : ∀ m → EvenOddView m
+  evenoddView zero = even zero refl
+  evenoddView (suc m) with evenoddView m
+  evenoddView (suc m) | even k p = odd k (cong suc p)
+  evenoddView (suc m) | odd k p = even (suc k) (cong suc (trans (+-suc k k) p))
+
+  -- {-# TERMINATING #-}
+  -- power : ℕ → ℕ → ℕ
+  -- power m zero = suc zero
+  -- power m (suc n) with evenoddView (suc n)
+  -- ... | even k _ = power (m * m) k
+  -- ... | odd k _ = m * power (m * m) k
+
+  lemma1 : ∀ n k → k + k ≡ suc n → k < suc n
+  lemma1 n zero p = s≤s z≤n
+  lemma1 .(k + suc k) (suc k) refl = s≤s (n≤m+n k (suc k))
+  lemma2 : ∀ n k → suc (k + k) ≡ suc n → k < suc n
+  lemma2 .(k + k) k refl = s≤s (m≤m+n k k)
+
+  power-acc : ℕ → (n : ℕ) → Acc _<_ n → ℕ
+  power-acc m zero _ = suc zero
+  power-acc m (suc n) (acc α) with evenoddView (suc n)
+  ... | even k p = power-acc (m * m) k (α k (lemma1 n k p))
+  ... | odd k p = m * power-acc (m * m) k (α k (lemma2 n k p))
+
+  power : ℕ → ℕ → ℕ
+  power m n = power-acc m n (wf< n)
+
+module PartD where
+  open Relation.Binary.PropositionalEquality.≡-Reasoning
+  
+  check-eq : ℕ → ℕ → Bool
+  check-eq 0 0 = true
+  check-eq 0 (suc n) = false
+  check-eq (suc m) 0 = false
+  check-eq (suc m) (suc n) = check-eq m n
+
+  list-eq : List ℕ → List ℕ → Bool
+  list-eq [] [] = true
+  list-eq [] (y ∷ ys) = false
+  list-eq (x ∷ xs) [] = false
+  list-eq (x ∷ xs) (y ∷ ys) = check-eq x y ∧ list-eq xs ys
+
+  data Bin : Set where
+    L : ℕ → Bin          -- leaf
+    N : Bin → Bin → Bin  -- node
+
+  fringe : Bin → List ℕ
+  fringe (L x) = x ∷ []
+  fringe (N t1 t2) = fringe t1 ++ fringe t2
+
+  -- check-same-fringe : Bin → Bin → Bool
+  -- check-same-fringe t u = list-eq (fringe t) (fringe u)
+
+  -- test1 : check-same-fringe (N (N (L 1) (L 2)) (L 3)) (N (L 1) (N (L 2) (L 3))) ≡ true
+  -- test1 = refl
+
+  -- test2 : check-same-fringe (N (N (L 1) (L 2)) (L 3)) (N (L 2) (N (L 1) (L 3))) ≡ false
+  -- test2 = refl
+
+  -- {-# TERMINATING #-}
+  -- mutual
+  --   sft : Bin → List Bin → Bin → List Bin → Bool
+  --   sft (N t1 t2) ts u us = sft t1 (t2 ∷ ts) u us
+  --   sft (L x) ts (N u1 u2) us = sft (L x) ts u1 (u2 ∷ us)
+  --   sft (L x) ts (L y) us = if check-eq x y then sff ts us else false
+
+  --   sff : List Bin → List Bin → Bool
+  --   sff (t ∷ ts) (u ∷ us) = sft t ts u us
+  --   sff (t ∷ ts) [] = false
+  --   sff [] (u ∷ us) = false
+  --   sff [] [] = true
+
+  -- check-same-fringe : Bin → Bin → Bool
+  -- check-same-fringe t u = sft t [] u []
+
+  -- test3 : check-same-fringe-unsafe (N (N (L 1) (L 2)) (L 3)) (N (L 1) (N (L 2) (L 3))) ≡ true
+  -- test3 = refl
+
+  -- test4 : check-same-fringe-unsafe (N (N (L 1) (L 2)) (L 3)) (N (L 2) (N (L 1) (L 3))) ≡ false
+  -- test4 = refl
+
+  tnodes : Bin → ℕ
+  tnodes (L _) = 0
+  tnodes (N t1 t2) = suc (tnodes t1 + tnodes t2)
+
+  fnodes : List Bin → ℕ
+  fnodes [] = 0
+  fnodes (t ∷ ts) = tnodes t + fnodes ts
+
+  mutual
+    sft-sz : (t : Bin) → (ts : List Bin) → (u : Bin) → (us : List Bin) → 
+             (m n : ℕ) → tnodes t + fnodes ts ≡ m → tnodes u + fnodes us ≡ n → Bool
+    sft-sz (N t1 t2) ts u us (suc m) n pm pn = sft-sz t1 (t2 ∷ ts) u us m n
+      (begin
+        tnodes t1 + (tnodes t2 + fnodes ts)
+       ≡⟨ sym (+-assoc (tnodes t1) (tnodes t2) (fnodes ts)) ⟩
+        (tnodes t1 + tnodes t2) + fnodes ts
+       ≡⟨ suc-injective pm ⟩
+        m
+       ∎) pn
+    sft-sz (N t1 t2) ts u us zero n () pn
+    sft-sz (L x) ts (N u1 u2) us m (suc n) pm pn = sft-sz (L x) ts u1 (u2 ∷ us) m n pm
+      (begin
+        tnodes u1 + (tnodes u2 + fnodes us)
+       ≡⟨ sym (+-assoc (tnodes u1) (tnodes u2) (fnodes us)) ⟩
+        (tnodes u1 + tnodes u2) + fnodes us
+       ≡⟨ suc-injective pn ⟩
+        n
+       ∎)
+    sft-sz (L x) ts (N u1 u2) us m zero pm ()
+    sft-sz (L x) ts (L y) us m n pm pn = if check-eq x y then sff-sz ts us m n pm pn else false
+
+    sff-sz : (ts us : List Bin) → (m n : ℕ) → fnodes ts ≡ m → fnodes us ≡ n → Bool
+    sff-sz (t ∷ ts) (u ∷ us) m n pm pn = sft-sz t ts u us m n pm pn
+    sff-sz (t ∷ ts) [] m n pm pn = false
+    sff-sz [] (u ∷ us) m n pm pn = false
+    sff-sz [] [] m n pm pn = true
+
+  check-same-fringe : Bin → Bin → Bool
+  check-same-fringe t u = sft-sz t [] u [] (tnodes t) (tnodes u) (+-identityʳ _) (+-identityʳ _)
+
+  test5 : check-same-fringe (N (N (L 1) (L 2)) (L 3)) (N (L 1) (N (L 2) (L 3))) ≡ true
+  test5 = refl
+
+  test6 : check-same-fringe (N (N (L 1) (L 2)) (L 3)) (N (L 2) (N (L 1) (L 3))) ≡ false
+  test6 = refl
