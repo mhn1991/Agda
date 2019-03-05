@@ -32,21 +32,46 @@ data Dec (A : Set) : Set where
 Decidable : {A : Set} → Rel A → Set
 Decidable R = ∀ a1 a2 → Dec (R a1 a2)
 
-dec : {A B : Set} (R : Rel A) (S : Rel B) →  Decidable R → Decidable S → Decidable {A} (_≡_) → Decidable (Lex R S) 
-dec R S DR DS DA (fst , snd) (fst₁ , snd₁) with DA fst₁ fst₁ | DS snd₁ snd₁
-dec R S DR DS DA (fst , snd) (fst₁ , snd₁) | yes P₁  | yes P = yes (lex-fst {!!})
-dec R S DR DS DA (fst , snd) (fst₁ , snd₁) | yes P₁  | no ¬P = yes {!!}
-dec R S DR DS DA (fst , snd) (fst₁ , snd₁) | no ¬P₁  | yes P = no (λ _ → ¬P₁ refl)
-dec R S DR DS DA (fst , snd) (fst₁ , snd₁) | no ¬P₁  | no ¬P = no (λ _ → ¬P₁ refl)
+helper : {A B : Set} (fst : A) (snd snd₁ : B) (R : Rel A) (S : Rel B)
+         -> (S snd snd₁ → ⊥ ) -> (R fst fst → ⊥)
+         -> ¬ (Lex R S (fst , snd) (fst , snd₁))
+helper fst snd snd1 R S ¬P1 ¬P (lex-fst x) = ¬P x
+helper fst snd snd1 R S ¬P1 ¬P (lex-snd .fst x) = ¬P1 x
+
+helper1 : {A B : Set} (fst fst₁ : A) (snd snd₁ : B) (R : Rel A) (S : Rel B)
+          -> (S snd snd₁ ) -> (R fst fst₁ → ⊥) -> ¬ (fst ≡ fst₁)
+          -> ¬ (Lex R S (fst , snd) (fst₁ , snd₁)) 
+helper1 fst fst₁ snd snd₁ R S P1 ¬P ¬P2 (lex-fst x) = ¬P x
+helper1 fst .fst snd snd₁ R S P1 ¬P ¬P2 (lex-snd .fst x) = ¬P2 refl
+
+
+helper2 : {A B : Set} (fst fst₁ : A) (snd snd₁ : B) (R : Rel A) (S : Rel B)
+          -> (¬ S snd snd₁) -> (R fst fst₁ → ⊥) -> ¬ (fst ≡ fst₁)
+          -> ¬ (Lex R S (fst , snd) (fst₁ , snd₁))
+helper2 fst fst₁ snd snd₁ R S ¬P1 ¬P ¬P2 (lex-fst x) = ¬P x
+helper2 fst .fst snd snd₁ R S ¬P1 ¬P ¬P2 (lex-snd .fst x) = ¬P2 refl
+
+
+dec : {A B : Set} (R : Rel A) (S : Rel B) →  Decidable R → Decidable S → Decidable {A} (_≡_) → Decidable (Lex R S)
+dec R S DR DS DA (fst , snd) (fst₁ , snd₁) with DR fst fst₁
+dec R S DR DS DA (fst , snd) (fst₁ , snd₁) | yes P = yes (lex-fst P)
+dec R S DR DS DA (fst , snd) (fst₁ , snd₁) | no ¬P  with DS snd snd₁ | DA fst fst₁
+dec R S DR DS DA (fst , snd) (.fst , snd₁) | no ¬P | yes P1 | yes refl = yes (lex-snd fst P1)
+dec R S DR DS DA (fst , snd) (fst₁ , snd₁) | no ¬P | no ¬P1 | yes refl = no λ x → helper fst snd snd₁ R S ¬P1 ¬P x
+dec R S DR DS DA (fst , snd) (fst₁ , snd₁) | no ¬P | yes P1 | no ¬P2 = no (λ x → helper1 fst fst₁ snd snd₁ R S P1 ¬P ¬P2 x)
+dec R S DR DS DA (fst , snd) (fst₁ , snd₁) | no ¬P | no ¬P1 | no ¬P2 = no (λ x → helper2 fst fst₁ snd snd₁ R S ¬P1 ¬P ¬P2 x)
+
+
+
 
 --Q3
 
-data Acc {A : Set} (_<_ : Rel A) (x : A) : Set where
-    acc : (∀ y → y < x  → Acc _<_ y) → Acc _<_ x
+data Acc {A : Set} (_<_ : A → A → Set) (x : A) : Set where
+  acc : (∀ y → y < x → Acc _<_ y) → Acc _<_ x
 
 WellFounded : {A : Set} → (A → A → Set) → Set
 WellFounded _<_ = ∀ x → Acc _<_ x
 
-
 lexwel : {A B : Set} (R : Rel A) (S : Rel B) → WellFounded R → WellFounded S →  WellFounded (Lex R S)
-lexwel R S WR WS P = acc λ y x → acc λ y₁ x₁ → {!!}
+lexwel R S WR WS P = {!!}
+
