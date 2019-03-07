@@ -65,13 +65,16 @@ dec R S DR DS DA (fst , snd) (fst₁ , snd₁) | no ¬P | no ¬P1 | no ¬P2 = no
 
 
 --Q3
-
 data Acc {A : Set} (_<_ : A → A → Set) (x : A) : Set where
   acc : (∀ y → y < x → Acc _<_ y) → Acc _<_ x
 
 WellFounded : {A : Set} → (A → A → Set) → Set
 WellFounded _<_ = ∀ x → Acc _<_ x
 
-lexwel : {A B : Set} (R : Rel A) (S : Rel B) → WellFounded R → WellFounded S →  WellFounded (Lex R S)
-lexwel R S WR WS P = {!!}
 
+wf-Lex : {A B : Set} {R : Rel A} {S : Rel B} → WellFounded R → WellFounded S → WellFounded (Lex R S)
+wf-Lex {R = R}{S = S} wfr wfs (a , b) = acc (lemma a b (wfr a) (wfs b))
+  where
+    lemma : ∀ a b → Acc R a → Acc S b → ∀ y → Lex R S y (a , b) → Acc (Lex R S) y
+    lemma a b (acc ar) _ (a1 , b1) (lex-fst p) = acc (lemma a1 b1 (ar a1 p) (wfs b1))
+    lemma a b ar (acc as) (.a , b1) (lex-snd .a p) = acc (lemma a b1 ar (as b1 p))
