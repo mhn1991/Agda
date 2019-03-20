@@ -61,23 +61,29 @@ left-graft : {A : Set} → Bin A → Bin A → ℕ → Maybe (Bin A)
 -- the first continuation ks (accepting a binary tree) is to be used in case of a successful graft, the second
 -- continuation kf (accepting a natural number) is to be used in case the index n runs out of bounds of u.
 
+
 -- Here is a skeleton for left-graft-cps (we have already filled in the n=0 case):
+
 left-graft-cps : {A : Set} → Bin A → Bin A → ℕ → {R : Set} → (Bin A → R) → (ℕ → R) → R
 left-graft-cps t u zero ks kf = ks (N t u)
-left-graft-cps t (L t1) (suc n) ks kf = {!!}
-left-graft-cps t (N t1 t2) (suc n) ks kf = left-graft-cps t t1 n ks kf
+left-graft-cps t (N t1 t2) (suc n) ks kf     = left-graft-cps t t1 n (λ p → ks (N p t2)) (λ m → left-graft-cps t t2 m ((λ p → ks (N t1 p))) kf)
+left-graft-cps t (L t1) (suc n)  ks kf = kf n
+
+
+
 
 -- You do not need to write much code here... the difficulty is just figuring out which code to write!
 
 -- Finally, finish implementing left-graft by calling left-graft-cps with the appropriate continuations:
 left-graft : {A : Set} → Bin A → Bin A → ℕ → Maybe (Bin A)
-left-graft t u n = {!!}
+left-graft t u n = left-graft-cps t u n (λ p → just p) (λ p → nothing)
 
--- Some test cases showing all of the ways to left-graft the tree "N (L 0) (L 0)" into the
+-- some test cases showing all of the ways to left-graft the tree "N (L 0) (L 0)" into the
 -- tree "N (N (L 1) (L 2)) (L 3)" (which has 5 subtrees)
-{-
+
 t = N (L 0) (L 0)
 u = N (N (L 1) (L 2)) (L 3)
+
 
 _ : left-graft t u 0 ≡ just (N (N (L 0) (L 0)) (N (N (L 1) (L 2)) (L 3)))
 _ = refl
@@ -97,9 +103,9 @@ _ = refl
 _ : left-graft t u 5 ≡ nothing
 _ = refl
 
--}
 
--- Q3
+
+-- q3
 -- For this question we consider a simple language of arithmetic expressions augmented with a
 -- C/C++/Java-style counter:
 
